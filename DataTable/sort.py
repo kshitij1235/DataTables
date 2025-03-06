@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-def sort_from_dataframe(df:DataFrame,column: int | str,ascending=True):
+def sort_from_dataframe(df:DataFrame,column,ascending =True):
     '''
     This function sorts the column in the dataframe 
     
@@ -12,6 +12,12 @@ def sort_from_dataframe(df:DataFrame,column: int | str,ascending=True):
     - asscending (default : True) -> to sort it in assending order
     
     '''
+
+    if isinstance(ascending,str):
+        if ascending == "ASC":
+            ascending = True
+        else:
+            ascending = False
     if isinstance(column , str):
         column = list(df.columns).index(column)
     

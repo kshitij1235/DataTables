@@ -1,17 +1,23 @@
 import pandas as pd 
-from DataTable.filter import filter_from_dataframe
-from DataTable.pagination import apply_pagination
-from DataTable.sort import sort_from_dataframe
+from DataTable.filter import *
+from DataTable.sort import *
 from DataTable.check import *
 from DataTable.calculate import *
 from pandas import DataFrame
 
+
 class df_datatables:
-    def __init__(self, dataframe : DataFrame=None, sql=None,db_connection= None,params: dict={
+    def __init__(self, 
+                dataframe : DataFrame=None, 
+                sql=None,
+                db_connection= None,
+                params: dict={
             'order_by': 0,
             'sort_asc': True,
             'skip': 0,
-            'limit_per_page': 10
+            'limit_per_page': 10,
+            'search': '',
+            'column_search':''
             }):
         """
         This class will return class the DataFrame object with default config
@@ -34,6 +40,8 @@ class df_datatables:
         """
         if dataframe is not None and not dataframe.empty:
             self.dataframe = dataframe
+
+
         else: 
             result = db_connection.connect().execute(sql)
             self.dataframe = pd.DataFrame(result.fetchall(), columns=result.keys())
@@ -74,25 +82,43 @@ def Datable(dataframe:DataFrame , params : dict):
     
     '''
     
+
+    search = params.get("filter") 
+    include_column_for_search = params.get("search_column")
+    search_in_column = params.get("search_values")
+    page_number = params.get("skip")
+    items_in_one_page = params.get("limit_per_page")
+    order_by_column =  params.get("order_by")
+    sort_by = params.get("sort_asc")
+
+
     dataframe_ = dataframe
 
-    if  params.get("skip") is not None  and  params.get("limit_per_page") is not None:
-        dataframe_ = apply_pagination(dataframe_,
-                                    skip=params["skip"],
-                                    limit=params["limit_per_page"])
-    if params.get("filter"):
+    #filter the search 
+    if search:
+        dataframe = filter_from_dataframe(dataframe,search)
+        dataframe_ = dataframe
 
-        dataframe_ = filter_from_dataframe(dataframe,
-                                            params['filter'],
-                                            exclude_column=params.get("exclude_column"))
-        dataframe = dataframe_
-        
-            
-    if params.get("order_by")  and params.get("sort_asc"):
+    #search for included column search
+    if include_column_for_search and search_in_column:
+        for val in search_in_column:
+            dataframe= filter_from_dataframe(dataframe,
+                                               val, 
+                                               include_column=include_column_for_search)
+            dataframe_ = dataframe
+
+    # paginating 
+    if  page_number  and  items_in_one_page  :
+        start ,end = get_start_and_end(page_number,
+                                       items_in_one_page)
+        dataframe_ = dataframe.iloc[start:end]
+
+    #sort by and order by (default) 
+    if order_by_column and sort_by:
         dataframe_ = sort_from_dataframe(dataframe_,
-                        params["order_by"],
-                        ascending=params["sort_asc"])
-    
+                        order_by_column,
+                        ascending=sort_by)
+
     return{
         "total_record":len(dataframe),
         "dataframe" : dataframe_ 
